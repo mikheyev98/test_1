@@ -1,10 +1,10 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { classify as mockClassify } from "./mock-ai.mjs";
-import { MODEL_TIMEOUT_MS, readRequestText, triage } from "./triage.mjs";
+import { readRequestText, triage } from "./triage.mjs";
 
-/** Файлы страницы, которые сервер отдаёт по GET. */
-const PAGES = {
+/** Статические файлы страницы, которые сервер отдаёт по GET. */
+const STATIC_FILES = {
   "/": {
     type: "text/html; charset=utf-8",
     body: await readFile(new URL("./index.html", import.meta.url)),
@@ -26,13 +26,13 @@ async function readBody(request) {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-/** Создаёт HTTP-сервер; модель и таймаут можно подменить в тестах. */
-export function createApp({ classify = mockClassify, timeoutMs = MODEL_TIMEOUT_MS } = {}) {
+/** Создаёт HTTP-сервер; модель можно подменить в тестах. */
+export function createApp({ classify = mockClassify } = {}) {
   return createServer(async (request, response) => {
-    if (request.method === "GET" && Object.hasOwn(PAGES, request.url)) {
-      const page = PAGES[request.url];
-      response.writeHead(200, { "Content-Type": page.type });
-      response.end(page.body);
+    if (request.method === "GET" && Object.hasOwn(STATIC_FILES, request.url)) {
+      const file = STATIC_FILES[request.url];
+      response.writeHead(200, { "Content-Type": file.type });
+      response.end(file.body);
       return;
     }
     if (request.method !== "POST" || request.url !== "/api/triage") {
@@ -41,7 +41,7 @@ export function createApp({ classify = mockClassify, timeoutMs = MODEL_TIMEOUT_M
     try {
       const text = readRequestText(await readBody(request));
       if (text === null) return json(response, 400, { status: "invalid_input" });
-      return json(response, 200, await triage(text, { classify, timeoutMs }));
+      return json(response, 200, await triage(text, classify));
     } catch {
       json(response, 500, { status: "server_error" });
     }

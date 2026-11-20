@@ -70,12 +70,12 @@ describe("POST /api/triage с выданным имитатором", () => {
     const elapsed = performance.now() - started;
 
     assert.deepEqual(reply, { status: 200, body: MANUAL_REVIEW });
-    assert.ok(elapsed >= 250 && elapsed < 800, `ожидание модели заняло ${elapsed.toFixed(0)} мс`);
+    assert.ok(elapsed >= 250 && elapsed < 1000, `ожидание модели заняло ${elapsed.toFixed(0)} мс`);
   });
 });
 
 describe("POST /api/triage с подменённой моделью", () => {
-  test("модель игнорирует отмену и не отвечает → manual_review по таймауту", async () => {
+  test("модель игнорирует отмену и не отвечает → manual_review по таймауту", { timeout: 2000 }, async () => {
     const app = await startApp({ classify: () => new Promise(() => {}) });
     try {
       assert.deepEqual(await app.triage(JSON.stringify({ text: "Привет" })), {

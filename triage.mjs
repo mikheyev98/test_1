@@ -2,7 +2,7 @@
 const TOPICS = new Set(["delivery", "pricing", "other"]);
 
 /** Сколько ждать модель, прежде чем отдать заявку на ручной разбор. */
-export const MODEL_TIMEOUT_MS = 300;
+const MODEL_TIMEOUT_MS = 300;
 
 /** Возвращает текст заявки из тела запроса или null, если ввод некорректен. */
 export function readRequestText(rawBody) {
@@ -17,7 +17,7 @@ export function readRequestText(rawBody) {
 }
 
 /** Проверяет сырой ответ модели; возвращает { topic, draft } или null, если ответ не годится. */
-export function parseModelReply(raw) {
+function parseModelReply(raw) {
   if (typeof raw !== "string") return null;
   let reply;
   try {
@@ -35,14 +35,14 @@ export function parseModelReply(raw) {
  * Разбирает заявку моделью. Таймаут, ошибка модели и неподходящий ответ
  * дают manual_review: менеджер разбирает заявку сам.
  */
-export async function triage(text, { classify, timeoutMs = MODEL_TIMEOUT_MS }) {
+export async function triage(text, classify) {
   const controller = new AbortController();
   let timer;
   const timeout = new Promise((_, reject) => {
     timer = setTimeout(() => {
       controller.abort();
-      reject(new Error(`Модель не ответила за ${timeoutMs} мс`));
-    }, timeoutMs);
+      reject(new Error(`Модель не ответила за ${MODEL_TIMEOUT_MS} мс`));
+    }, MODEL_TIMEOUT_MS);
   });
   try {
     const raw = await Promise.race([classify(text, { signal: controller.signal }), timeout]);
